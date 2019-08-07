@@ -32,20 +32,21 @@ import Moya
 let ScreenHeight = UIScreen.main.bounds.size.height
 let ScreenWidth = UIScreen.main.bounds.size.width
 @objc protocol ZHFAddTitleAddressViewDelegate {
-    func cancelBtnClick( titleAddress: String,titleID: String)
+    func successBtnClick(titleAddress: String, titleID: String, sender: ZHFAddTitleAddressView)
+    func cancelBtnClick(sender: ZHFAddTitleAddressView)
 }
 class ZHFAddTitleAddressView: UIView {
-  let AddressAdministerCellIdentifier  = "AddressAdministerCellIdentifier"
-  weak var delegate: ZHFAddTitleAddressViewDelegate?
-  var defaultHeight: CGFloat = 200
-  var title: String = "所在地区"
-  var isclick: Bool = false  //判断是滚动还是点击
-  var addAddressView: UIView =  UIView()
-  lazy var provinceMarr:NSMutableArray = NSMutableArray() //省
-  lazy var cityMarr:NSMutableArray = NSMutableArray() //市
-  lazy var countyMarr:NSMutableArray = NSMutableArray() //县
-  lazy var townMarr:NSMutableArray = NSMutableArray() //乡镇
-  var titleScrollView :UIScrollView = UIScrollView()
+    let AddressAdministerCellIdentifier  = "AddressAdministerCellIdentifier"
+    weak var delegate: ZHFAddTitleAddressViewDelegate?
+    var defaultHeight: CGFloat = 200
+    var title: String = "所在地区"
+    var isclick: Bool = false  //判断是滚动还是点击
+    var addAddressView: UIView =  UIView()
+    lazy var provinceMarr:NSMutableArray = NSMutableArray() //省
+    lazy var cityMarr:NSMutableArray = NSMutableArray() //市
+    lazy var countyMarr:NSMutableArray = NSMutableArray() //县
+    lazy var townMarr:NSMutableArray = NSMutableArray() //乡镇
+    var titleScrollView :UIScrollView = UIScrollView()
     var contentScrollView :UIScrollView = UIScrollView()
     var radioBtn :UIButton = UIButton()
     var lineLabel :UILabel = UILabel()
@@ -80,16 +81,22 @@ class ZHFAddTitleAddressView: UIView {
         addAddressView.frame = CGRect.init(x: 0, y: ScreenHeight, width: ScreenWidth, height: defaultHeight)
         addAddressView.backgroundColor = UIColor.white
         self.addSubview(addAddressView)
-        let titleLabel: UILabel = UILabel.init(frame: CGRect.init(x: 40, y: 10, width: ScreenWidth - 80, height: 30))
+        let titleLabel: UILabel = UILabel.init(frame: CGRect.init(x: 60, y: 10, width: ScreenWidth - 120, height: 30))
         titleLabel.text = title
         titleLabel.textAlignment = NSTextAlignment.center
         titleLabel.textColor = UIColor.gray
         titleLabel.font = UIFont.systemFont(ofSize: 17)
         addAddressView.addSubview(titleLabel)
-        let cancelBtn:UIButton = UIButton.init(type: .custom)
-        cancelBtn.frame = CGRect.init(x:addAddressView.frame.maxX - 40, y: 10, width: 30, height: 30)
+        let successBtn:UIButton = UIButton(frame: CGRect.init(x:addAddressView.frame.maxX - 60, y: 10, width: 60, height: 30))
+        successBtn.tag = 1
+        successBtn.setTitle("确定", for: .normal)
+        successBtn.setTitleColor(.red, for: .normal)
+        successBtn.addTarget(self, action: #selector(seccessBtnClicked), for: .touchUpInside)
+        addAddressView.addSubview(successBtn)
+        let cancelBtn:UIButton = UIButton(frame: CGRect.init(x:0, y: 10, width: 60, height: 30))
         cancelBtn.tag = 1
-        cancelBtn.setImage(UIImage.init(named: "cancel"), for: .normal)
+        cancelBtn.setTitle("取消", for: .normal)
+        cancelBtn.setTitleColor(.red, for: .normal)
         cancelBtn.addTarget(self, action: #selector(cancelBtnClicked), for: .touchUpInside)
         addAddressView.addSubview(cancelBtn)
         self.addTableViewAndTitle(tableViewTag: 0)
@@ -104,8 +111,40 @@ class ZHFAddTitleAddressView: UIView {
     func addAnimate() {
         self.isHidden = false
         UIView.animate(withDuration:0.2, animations: {
-             self.addAddressView.frame.origin.y = ScreenHeight - self.defaultHeight
+            self.addAddressView.frame.origin.y = ScreenHeight - self.defaultHeight
         }, completion: nil)
+    }
+    //确定按钮点击
+    @objc func seccessBtnClicked() {
+        UIView.animate(withDuration:0.2, animations: {
+            self.addAddressView.frame.origin.y = ScreenHeight
+        }) { (_) in
+            self.isHidden = true
+            var titleAddress :String = ""
+            var titleID :String = ""
+            var count: NSInteger = 0
+            let str = self.titleMarr[self.titleMarr.count - 1] as! String
+            if (str == "请选择") {
+                count = self.titleMarr.count - 1
+            }
+            else{
+                count = self.titleMarr.count
+            }
+            for i in 0 ..< count{
+                if titleAddress == "" {
+                    titleAddress = "\(self.titleMarr[i])"
+                } else {
+                    titleAddress =  "\(titleAddress) \(self.titleMarr[i])"
+                }
+                if i == count - 1 {
+                    titleID = "\(titleID)\(self.titleIDMarr[i])"
+                }
+                else{
+                    titleID = "\(titleID)\(self.titleIDMarr[i])="
+                }
+            }
+            self.delegate?.successBtnClick(titleAddress: titleAddress, titleID: titleID, sender: self)
+        }
     }
     //取消按钮被点击
     @objc func cancelBtnClicked(){
@@ -113,6 +152,7 @@ class ZHFAddTitleAddressView: UIView {
             self.addAddressView.frame.origin.y = ScreenHeight
         }) { (_) in
             self.isHidden = true
+            self.delegate?.cancelBtnClick(sender: self)
         }
     }
     //收回的动画效果
@@ -140,13 +180,13 @@ class ZHFAddTitleAddressView: UIView {
                     titleID = "\(titleID)\(self.titleIDMarr[i])="
                 }
             }
-             self.delegate?.cancelBtnClick(titleAddress: titleAddress, titleID: titleID)
+            self.delegate?.successBtnClick(titleAddress: titleAddress, titleID: titleID, sender: self)
         }
     }
 }
 extension ZHFAddTitleAddressView :UIScrollViewDelegate{
     func setupTitleScrollView(){
-       //TitleScrollView和分割线
+        //TitleScrollView和分割线
         titleScrollView.frame = CGRect.init(x: 0, y: 50, width: ScreenWidth, height: titleScrollViewH)
         addAddressView.addSubview(titleScrollView)
         let lineView : UIView = UIView.init(frame: CGRect.init(x: 0, y: titleScrollView.frame.maxY, width: ScreenWidth, height: 0.5))
@@ -167,7 +207,7 @@ extension ZHFAddTitleAddressView :UIScrollViewDelegate{
         for view in titleScrollView.subviews {
             view.removeFromSuperview()
         }
-         self.titleBtns.removeAllObjects()
+        self.titleBtns.removeAllObjects()
         let btnH :CGFloat = self.titleScrollViewH
         lineLabel.backgroundColor = UIColor.red
         titleScrollView.addSubview(lineLabel)
@@ -205,14 +245,14 @@ extension ZHFAddTitleAddressView :UIScrollViewDelegate{
         UIView.animate(withDuration: 0.25) {
             self.contentScrollView.contentOffset = CGPoint.init(x: x, y: 0)
         }
-       // self.contentScrollView.setContentOffset(CGPoint.init(x: x, y: 0), animated: true)//使用这个动画效果会出现bug
+        // self.contentScrollView.setContentOffset(CGPoint.init(x: x, y: 0), animated: true)//使用这个动画效果会出现bug
         radioBtn = titleBtn
         isclick = true
     }
     func setupOneTableView(btnTag: NSInteger){
         let contentView : UITableView = self.tableViewMarr[btnTag] as! UITableView
         if btnTag == 0 {
-          self.getAddressMessageData(addressID: 1, provinceIdOrCityId: 0)
+            self.getAddressMessageData(addressID: 1, provinceIdOrCityId: 0)
         }
         if (contentView.superview != nil) {
             return
@@ -255,7 +295,7 @@ extension ZHFAddTitleAddressView:UITableViewDelegate,UITableViewDataSource{
             return self.townMarr.count
         }
         else{
-           return 0
+            return 0
         }
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -269,7 +309,7 @@ extension ZHFAddTitleAddressView:UITableViewDelegate,UITableViewDataSource{
             self.PCCTID = provinceModel.id
         }
         else if tableView.tag == 1 {
-           let cityModel: CityModel = self.cityMarr[indexPath.row] as! CityModel
+            let cityModel: CityModel = self.cityMarr[indexPath.row] as! CityModel
             cell.titleString = cityModel.city_name!
             self.PCCTID = cityModel.id
         }
@@ -286,7 +326,7 @@ extension ZHFAddTitleAddressView:UITableViewDelegate,UITableViewDataSource{
         if titleIDMarr.count > tableView.tag{
             let  pcctId :NSInteger = titleIDMarr[tableView.tag] as! NSInteger
             if self.PCCTID == pcctId{
-              cell.isChangeRed = true
+                cell.isChangeRed = true
                 if isChangeAddress == true
                 {
                     self.tableView(tableView, didSelectRowAt: NSIndexPath.init(row: indexPath.row, section: 0) as IndexPath)
@@ -435,16 +475,16 @@ extension ZHFAddTitleAddressView {
             if self.isChangeAddress == true{
                 //保证列表刷新之后才进行滚动处理
                 DispatchQueue.main.async {
-                 if tableView1.numberOfRows(inSection: 0) >= self.scroolToRow{
-                    tableView1.scrollToRow(at: NSIndexPath.init(row: self.scroolToRow, section: 0) as IndexPath, at: .bottom, animated: false)
-                   }
+                    if tableView1.numberOfRows(inSection: 0) >= self.scroolToRow{
+                        tableView1.scrollToRow(at: NSIndexPath.init(row: self.scroolToRow, section: 0) as IndexPath, at: .bottom, animated: false)
+                    }
                 }
             }
         }
     }
     func case1() {
         self.provinceMarr.removeAllObjects()
-          var j = -1 //设置这个的主要原因是因为 resultArr 是包含省市区的数组
+        var j = -1 //设置这个的主要原因是因为 resultArr 是包含省市区的数组
         if resultArr.count > 0 {
             for i in 0 ..< resultArr.count{
                 let dic : NSDictionary = resultArr[i]
@@ -478,10 +518,10 @@ extension ZHFAddTitleAddressView {
     }
     func case2(selectedID: NSInteger) {
         self.cityMarr.removeAllObjects()
-         var j = -1 //设置这个的主要原因是因为 resultArr 是包含省市区的数组
+        var j = -1 //设置这个的主要原因是因为 resultArr 是包含省市区的数组
         for i in 0 ..< resultArr.count{
             let dic : NSDictionary = resultArr[i]
-             if (dic["parentid"] as! String == "\(selectedID)") {
+            if (dic["parentid"] as! String == "\(selectedID)") {
                 j = j + 1
                 let dic1: [String : Any] = [
                     //记得把字符串类型转换成Int类型，否则用ObjectMapper转模型是id会出错
@@ -499,7 +539,7 @@ extension ZHFAddTitleAddressView {
             }
         }
         if (self.cityMarr.count > 0) {
-           changeRefreshTitle(titleTag: 1)
+            changeRefreshTitle(titleTag: 1)
         }
         else{
             //没有对应的市
@@ -518,7 +558,7 @@ extension ZHFAddTitleAddressView {
                     "id":(dic["id"] as! NSString).intValue,
                     "county_name":dic["name"]!];
                 let countyModel:CountyModel  =
-                     CountyModel(JSON: dic1)!
+                    CountyModel(JSON: dic1)!
                 if self.titleIDMarr.count > 2{
                     let countyID = self.titleIDMarr[2] as! NSInteger
                     if countyModel.id == countyID{
@@ -529,7 +569,7 @@ extension ZHFAddTitleAddressView {
             }
         }
         if (self.countyMarr.count > 0) {
-           changeRefreshTitle(titleTag: 2)
+            changeRefreshTitle(titleTag: 2)
         }
         else{
             //没有对应的县
@@ -548,7 +588,7 @@ extension ZHFAddTitleAddressView {
                     "id":(dic["id"] as! NSString).intValue,
                     "town_name":dic["name"]!];
                 let townModel:TownModel  =
-                     TownModel(JSON: dic1)!
+                    TownModel(JSON: dic1)!
                 if self.titleIDMarr.count > 3{
                     let townID = self.titleIDMarr[3] as! NSInteger
                     if townModel.id == townID{
@@ -563,7 +603,7 @@ extension ZHFAddTitleAddressView {
         }
         else{//没有对应的乡镇
             self.removeTitleAndTableViewCancel(index: 3)
-          }
+        }
     }
     func changeRefreshTitle(titleTag: NSInteger){
         if (self.tableViewMarr.count >= titleTag + 1){
